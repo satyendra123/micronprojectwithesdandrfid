@@ -1,3 +1,5 @@
+//EX-1 yaha arduino jo hai ek server ki tarah kaam karta hai. jaise pahle esd read kiya aur rfid backened se data send karta hai status valid or invalid. if status is valid then open the gate otherwise don't open the gate. 
+// it read the esd first then wait for the rfid for three minutes if in between the rfid is not come then it reset the sequence. and if rfid scans first then it ignores it and reset the sequence
 #include <SPI.h>
 #include <Ethernet.h>
 #include <ArduinoJson.h>
