@@ -1,26 +1,26 @@
-/*
-#include <Arduino.h>
-
 #define ESD_PIN 4
-#define RELAY_INPUT 8
-#define RELAY_OUTPUT 2
+#define RFID_INPUT 8
+#define RELAY_OUTPUT 5
 
-unsigned long detectionTimestamp = 0;
+unsigned long validationTimestamp = 0;
 unsigned long timeout = 180000;
+
+bool rfidValidated = false;
 bool esdDetected = false;
 
 void setup() {
     Serial.begin(9600);
-    Serial.println("Waiting for ESD signal...");
+    Serial.println("Waiting for validation signal...");
     pinMode(ESD_PIN, INPUT_PULLUP);
-    pinMode(RELAY_INPUT, INPUT);
+    pinMode(RFID_INPUT, INPUT_PULLUP);
     pinMode(RELAY_OUTPUT, OUTPUT);
     digitalWrite(RELAY_OUTPUT, HIGH);
 }
 
 void resetSequence() {
+    rfidValidated = false;
     esdDetected = false;
-    detectionTimestamp = 0;
+    validationTimestamp = 0;
     Serial.println("Sequence reset.");
 }
 
@@ -31,55 +31,32 @@ void triggerRelay() {
     digitalWrite(RELAY_OUTPUT, HIGH);
 }
 
-void checkEsdSignal() {
-    if (digitalRead(ESD_PIN) == HIGH && !esdDetected) {
-        esdDetected = true;
-        detectionTimestamp = millis();
-        Serial.println("ESD signal detected, waiting for validation...");
-    }
-
-    if (esdDetected && millis() - detectionTimestamp > timeout) {
-        Serial.println("Timeout: No validation received, resetting...");
-        resetSequence();
-    }
-}
-
-void checkRelayInput() {
-    if (esdDetected && digitalRead(RELAY_INPUT) == HIGH) {  
-        Serial.println("Relay signal received from other controller. Opening gate...");
-        triggerRelay();
-        resetSequence();
-    } else if (esdDetected) {
-        Serial.println("ESD detected, but relay signal not received yet.");
-    }
-}
-
 void loop() {
-    checkEsdSignal();
-    checkRelayInput();
+
+    if (!rfidValidated && digitalRead(RFID_INPUT) == LOW) {
+        delay(50);
+        if (digitalRead(RFID_INPUT) == LOW) {
+            rfidValidated = true;
+            validationTimestamp = millis();
+            Serial.println("Rfid validation received. Waiting for ESD...");
+        }
+    }
+
+    if (rfidValidated && !esdDetected) {
+        if (digitalRead(ESD_PIN) == LOW) {
+            delay(50); // debounce
+            if (digitalRead(ESD_PIN) == LOW) {
+                esdDetected = true;
+                Serial.println("ESD detected after validation. Opening gate...");
+                delay(1000);
+                triggerRelay();
+                resetSequence();
+            }
+        }
+
+        if (millis() - validationTimestamp > timeout) {
+            Serial.println("Timeout: ESD not detected in time. Resetting...");
+            resetSequence();
+        }
+    }
 }
-*/
-
-#include <Arduino.h>
-
-#define RELAY_PIN 2
-#define SENSE_PIN 8
-
-void setup() {
-    pinMode(RELAY_PIN, OUTPUT);
-    pinMode(SENSE_PIN, INPUT_PULLUP);
-    Serial.begin(9600);
-}
-
-void loop() {
-    digitalWrite(RELAY_PIN, HIGH);
-    delay(1000);
-
-    int relayState = digitalRead(SENSE_PIN);
-    Serial.print("Relay NO signal: ");
-    Serial.println(relayState);
-
-    digitalWrite(RELAY_PIN, LOW);
-    delay(1000);
-}
-
